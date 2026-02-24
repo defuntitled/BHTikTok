@@ -32,6 +32,10 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      THEOS: ${{ github.workspace }}/theos
+      THEOS_SDK: iPhoneOS16.5.sdk
+
     steps:
       - name: Checkout Main
         uses: actions/checkout@v5
@@ -74,7 +78,7 @@ jobs:
         id: theos
         uses: actions/cache@v4.3.0
         env:
-          cache-name: theos_cache_67db2ab
+          cache-name: theos_cache_67db2ab_v2
         with:
           path: theos/
           key: ${{ env.cache-name }}
@@ -94,11 +98,41 @@ jobs:
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks/
           cd sdks
-          git sparse-checkout set --no-cone iPhoneOS16.5.sdk
+          git sparse-checkout set --no-cone "$THEOS_SDK"
           git checkout
+          mkdir -p "$THEOS/sdks"
           mv *.sdk "$THEOS/sdks"
-        env:
-          THEOS: ${{ github.workspace }}/theos
+
+      - name: Ensure Preferences framework stub in Theos SDK
+        run: |
+          SDK_PATH="$THEOS/sdks/$THEOS_SDK"
+          DEST_DIR="$SDK_PATH/System/Library/PrivateFrameworks/Preferences.framework"
+          DEST_TBD="$DEST_DIR/Preferences.tbd"
+
+          mkdir -p "$DEST_DIR"
+
+          PREF_SRC=""
+          IOS_SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+          SIM_SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+
+          for candidate in \
+            "$IOS_SDK_PATH/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd" \
+            "$SIM_SDK_PATH/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
+          do
+            if [[ -f "$candidate" ]]; then
+              PREF_SRC="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$PREF_SRC" ]]; then
+            echo "::error::Could not locate Preferences.tbd in Xcode SDKs on runner"
+            exit 1
+          fi
+
+          cp "$PREF_SRC" "$DEST_TBD"
+          echo "Installed Preferences.tbd from: $PREF_SRC"
+          ls -la "$DEST_DIR"
 
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
@@ -110,8 +144,6 @@ jobs:
         run: |
           cd "${{ github.workspace }}/main"
           make clean package SIDELOADING=1
-        env:
-          THEOS: ${{ github.workspace }}/theos
 
       - name: Inject tweak into provided IPA
         run: |
