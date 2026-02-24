@@ -13,9 +13,8 @@ BHTikTok_EXTRA_FRAMEWORKS = Cephei CepheiPrefs CepheiUI
 BHTikTok_CFLAGS = -fobjc-arc -Wno-unused-variable -Wno-unused-value -Wno-deprecated-declarations -Wno-nullability-completeness -Wno-unused-function -Wno-incompatible-pointer-types
 
 ifeq ($(SIDELOADING),1)
-BHTikTok_FILES := $(filter-out SettingsViewController.m,$(BHTikTok_FILES))
 BHTikTok_PRIVATE_FRAMEWORKS :=
-BHTikTok_CFLAGS += -DBH_SIDELOADING=1
+BHTikTok_LDFLAGS += -Wl,-undefined,dynamic_lookup
 endif
 
 include $(THEOS_MAKE_PATH)/tweak.mk

@@ -49,7 +49,6 @@ static BOOL isAuthenticationShowed = FALSE;
 }
 %end
 
-#if !BH_SIDELOADING
 %hook TTKSettingsBaseCellPlugin
 - (void)didSelectItemAtIndex:(NSInteger)index {
     if ([self.itemModel.identifier isEqualToString:@"bhtiktok_settings"]) {
@@ -79,7 +78,6 @@ static BOOL isAuthenticationShowed = FALSE;
     }
 }
 %end
-#endif
 
 %hook SparkViewController // alwaysOpenSafari
 - (void)viewWillAppear:(BOOL)animated {
